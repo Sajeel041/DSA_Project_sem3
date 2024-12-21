@@ -30,12 +30,21 @@ protected:
     vector<vector<int>> adjacencyMatrix;                // Graph representation of parking lot
 
     // Helper function to convert string to lowercase
-    string toLowerCase(const string& str) const {
+string toLowerCase(const string& str) const {
     string lowerStr = str;
     for (char &ch : lowerStr) {
         ch = tolower(ch);  // Convert each character to lowercase
     }
     return lowerStr;
+    }
+bool isValidSpotID(int id) const {
+    // Iterate through each parking spot to check if the id exists
+    for (const auto &spot : parkingSpots) {
+        if (spot.id == id) {
+            return true; // id found, return true
+        }
+    }
+    return false; // id not found, return false
 }
 };
 class Driver : public SmartParkingManagement{
