@@ -46,6 +46,15 @@ bool isValidSpotID(int id) const {
     }
     return false; // id not found, return false
 }
+int findBestFitSpot(VehicleType type) const {
+        //spots to find the smallest available spot that fits the vehicle
+        for (const auto &spot : parkingSpots) {
+            if (spot.isAvailable && canFit(type, spot.size)) {
+                return spot.id;
+            }
+        }
+        return -1; // No suitable spot found
+    }
 };
 class Driver : public SmartParkingManagement{
 
