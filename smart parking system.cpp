@@ -1,4 +1,13 @@
 #include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <list>
+#include <ctime>
+#include <algorithm>
+#include <cctype>    // for tolower
+#include <string>
+#include <limits>
+#include <sstream>
 using namespace std;
 
 // Struct to represent a Parking Spot
