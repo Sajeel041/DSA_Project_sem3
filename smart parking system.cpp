@@ -23,7 +23,7 @@ struct Vehicle {
     double entryTime;    
 };
 class SmartParkingManagement{
-protected:
+protected:// all of the fuctions present in the protected area will be used in the child classes ok
     vector<ParkingSpot> parkingSpots;
     unordered_map<int, pair<int, double>> reservations; // driverID -> (spotID, entryTime)
     list<pair<int, double>> entryExitLogs;              // (spotID, timestamp)
@@ -55,6 +55,37 @@ int findBestFitSpot(VehicleType type) const {
         }
         return -1; // No suitable spot found
     }
+ // Check if a vehicle type can fit into a slot size
+    bool canFit(VehicleType type, SlotSize size) const {
+        if (type == VehicleType::MOTORCYCLE) {
+            return (size == SlotSize::COMPACT);
+        } else if (type == VehicleType::CAR) {
+            return (size == SlotSize::REGULAR || size == SlotSize::LARGE);
+        } else if (type == VehicleType::TRUCK) {
+            return (size == SlotSize::LARGE);
+        }
+        return false;
+    }
+
+// Display the adjacency matrix (Graph Representation)
+    void displayGraph() const {
+        cout << "Parking Lot Graph (Adjacency Matrix):\n";
+        for (const auto &row : adjacencyMatrix) {
+            for (const auto &value : row) {
+                cout << value << " ";
+            }
+            cout << "\n";
+        }
+    }
+// Check if a spot ID is valid
+    bool isValidSpotID(int id) const {
+    for (const auto &spot : parkingSpots) {
+        if (spot.id == id) {
+            return true; 
+        }
+    }
+    return false; 
+}
 };
 class Driver : public SmartParkingManagement{
 
