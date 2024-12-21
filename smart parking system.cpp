@@ -2,6 +2,9 @@
 using namespace std;
 
 // Struct to represent a Parking Spot
+enum class SlotSize { COMPACT = 1, REGULAR, LARGE };
+enum class VehicleType { MOTORCYCLE = 1, CAR, TRUCK };
+
 struct ParkingSpot {
     int id;
     bool isAvailable;
@@ -20,7 +23,20 @@ struct Vehicle {
     double entryTime;    
 };
 class SmartParkingManagement{
+protected:
+    vector<ParkingSpot> parkingSpots;
+    unordered_map<int, pair<int, double>> reservations; // driverID -> (spotID, entryTime)
+    list<pair<int, double>> entryExitLogs;              // (spotID, timestamp)
+    vector<vector<int>> adjacencyMatrix;                // Graph representation of parking lot
 
+    // Helper function to convert string to lowercase
+    string toLowerCase(const string& str) const {
+    string lowerStr = str;
+    for (char &ch : lowerStr) {
+        ch = tolower(ch);  // Convert each character to lowercase
+    }
+    return lowerStr;
+}
 };
 class Driver : public SmartParkingManagement{
 
