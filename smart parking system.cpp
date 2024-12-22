@@ -8,6 +8,8 @@
 #include <string>
 #include <limits>
 #include <sstream>
+#include <fstream>   // for file I/O
+#include <iomanip>   
 using namespace std;
 
 // Struct to represent a Parking Spot
