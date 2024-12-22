@@ -95,6 +95,67 @@ int findBestFitSpot(VehicleType type) const {
     }
     return false; 
 }
+public:
+    // Constructor to initialize parking spots and adjacency matrix with deterministic sizes
+    SmartParkingManagement(int totalSpots, const vector<vector<int>> &graph) {
+        // Initialize adjacency matrix
+        adjacencyMatrix = graph;
+
+        // Initialize parking spots with fixed sizes for testing
+        for (int i = 0; i < totalSpots; i++) {
+            SlotSize size;
+            // Assign sizes based on spot ID for predictability
+            if (i == 0) {
+                size = SlotSize::REGULAR; // Suitable for Car
+            } else if (i == 1 || i == 2) {
+                size = SlotSize::COMPACT; // Suitable for Motorcycle
+            } else {
+                size = SlotSize::LARGE; // Suitable for Truck
+            }
+            double distance = static_cast<double>(rand() % 100 + 1); // Distance between 1 and 100 meters
+            double baseRate = 5.0;    // Base fee
+            double ratePerHour = 3.0; // Hourly rate
+
+            parkingSpots.push_back({i, true, size, distance, baseRate, ratePerHour});
+        }
+        sortSpotsByProximity();
+    }
+
+    // Getter for parkingSpots (returns const reference to prevent modification)
+    const vector<ParkingSpot>& getParkingSpots() const {
+        return parkingSpots;
+    }
+
+    // Display available parking spots based on vehicle type
+    virtual void displayAvailableSpots(VehicleType type) const {
+        cout << "Available Parking Spots for ";
+        switch (type) {
+            case VehicleType::MOTORCYCLE:
+                cout << "Motorcycle:\n";
+                break;
+            case VehicleType::CAR:
+                cout << "Car:\n";
+                break;
+            case VehicleType::TRUCK:
+                cout << "Truck:\n";
+                break;
+            default:
+                cout << "Unknown Vehicle Type:\n";
+        }
+        bool anyAvailable = false;
+        for (const auto &spot : parkingSpots) {
+            if (spot.isAvailable && canFit(type, spot.size)) {
+                anyAvailable = true;
+                cout << "Spot ID: " << spot.id
+                     << ", Size: " << ((spot.size == SlotSize::COMPACT) ? "Compact" :
+                                      (spot.size == SlotSize::REGULAR) ? "Regular" : "Large")
+                     << ", Distance: " << spot.distanceFromEntrance << " meters\n";
+            }
+        }
+        if (!anyAvailable) {
+            cout << "No available spots for this vehicle type.\n";
+        }
+    }
 };
 class Driver : public SmartParkingManagement{
 public:
