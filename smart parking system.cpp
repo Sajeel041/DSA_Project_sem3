@@ -81,6 +81,248 @@ struct Vehicle {
     VehicleType type;
     double entryTime;    
 };
+// ------------------- AVL Tree Implementation for ParkingSpots -------------------
+/*
+    AVL Tree is a self-balancing binary search tree. In this implementation, the AVL Tree
+    is used to manage ParkingSpot nodes sorted by their Spot ID. This allows efficient
+    search, insertion, and deletion operations with O(log n) time complexity.
+*/
+struct AVLNode {
+    ParkingSpot spot;
+    AVLNode* left;
+    AVLNode* right;
+    int height;
+
+    AVLNode(const ParkingSpot& s)
+        : spot(s), left(nullptr), right(nullptr), height(1) {}
+};
+
+class AVLTree {
+private:
+    AVLNode* root;
+
+    // Utility function to get height of the node
+    int getHeight(AVLNode* node) const {
+        return node ? node->height : 0;
+    }
+
+    // Utility function to get balance factor of node
+    int getBalanceFactor(AVLNode* node) const {
+        if (!node)
+            return 0;
+        return getHeight(node->left) - getHeight(node->right);
+    }
+
+    // Right rotate subtree rooted with y
+    AVLNode* rightRotate(AVLNode* y) {
+        AVLNode* x = y->left;
+        AVLNode* T2 = x->right;
+
+        // Perform rotation
+        x->right = y;
+        y->left = T2;
+
+        // Update heights
+        y->height = max(getHeight(y->left), getHeight(y->right)) + 1;
+        x->height = max(getHeight(x->left), getHeight(x->right)) + 1;
+
+        // Return new root
+        return x;
+    }
+
+    // Left rotate subtree rooted with x
+    AVLNode* leftRotate(AVLNode* x) {
+        AVLNode* y = x->right;
+        AVLNode* T2 = y->left;
+
+        // Perform rotation
+        y->left = x;
+        x->right = T2;
+
+        // Update heights
+        x->height = max(getHeight(x->left), getHeight(x->right)) + 1;
+        y->height = max(getHeight(y->left), getHeight(y->right)) + 1;
+
+        // Return new root
+        return y;
+    }
+
+    // Insert a ParkingSpot into the AVL tree
+    AVLNode* insert(AVLNode* node, const ParkingSpot& spot) {
+        // 1. Perform normal BST insertion
+        if (!node)
+            return new AVLNode(spot);
+
+        if (spot.id < node->spot.id)
+            node->left = insert(node->left, spot);
+        else if (spot.id > node->spot.id)
+            node->right = insert(node->right, spot);
+        else // Duplicate Spot IDs not allowed
+            return node;
+
+        // 2. Update height of this ancestor node
+        node->height = 1 + max(getHeight(node->left), getHeight(node->right));
+
+        // 3. Get the balance factor
+        int balance = getBalanceFactor(node);
+
+        // 4. Balance the tree
+
+        // Left Left Case
+        if (balance > 1 && spot.id < node->left->spot.id)
+            return rightRotate(node);
+
+        // Right Right Case
+        if (balance < -1 && spot.id > node->right->spot.id)
+            return leftRotate(node);
+
+        // Left Right Case
+        if (balance > 1 && spot.id > node->left->spot.id) {
+            node->left = leftRotate(node->left);
+            return rightRotate(node);
+        }
+
+        // Right Left Case
+        if (balance < -1 && spot.id < node->right->spot.id) {
+            node->right = rightRotate(node->right);
+            return leftRotate(node);
+        }
+
+        // Return the unchanged node pointer
+        return node;
+    }
+
+    // Find the node with minimum Spot ID value
+    AVLNode* minValueNode(AVLNode* node) const {
+        AVLNode* current = node;
+        while (current->left != nullptr)
+            current = current->left;
+        return current;
+    }
+
+    // Delete a ParkingSpot from the AVL tree
+    AVLNode* deleteNode(AVLNode* root, int spotID) {
+        // Perform standard BST delete
+        if (!root)
+            return root;
+
+        if (spotID < root->spot.id)
+            root->left = deleteNode(root->left, spotID);
+        else if (spotID > root->spot.id)
+            root->right = deleteNode(root->right, spotID);
+        else {
+            // Node with only one child or no child
+            if ((root->left == nullptr) || (root->right == nullptr)) {
+                AVLNode* temp = root->left ? root->left : root->right;
+
+                // No child case
+                if (!temp) {
+                    temp = root;
+                    root = nullptr;
+                }
+                else // One child case
+                    *root = *temp; // Copy the contents of the non-empty child
+
+                delete temp;
+            }
+            else {
+                // Node with two children: Get the inorder successor (smallest in the right subtree)
+                AVLNode* temp = minValueNode(root->right);
+
+                // Copy the inorder successor's data to this node
+                root->spot = temp->spot;
+
+                // Delete the inorder successor
+                root->right = deleteNode(root->right, temp->spot.id);
+            }
+        }
+
+        // If the tree had only one node then return
+        if (!root)
+            return root;
+
+        // Update height
+        root->height = 1 + max(getHeight(root->left), getHeight(root->right));
+
+        // Get balance factor
+        int balance = getBalanceFactor(root);
+
+        // Balance the tree
+
+        // Left Left Case
+        if (balance > 1 && getBalanceFactor(root->left) >= 0)
+            return rightRotate(root);
+
+        // Left Right Case
+        if (balance > 1 && getBalanceFactor(root->left) < 0) {
+            root->left = leftRotate(root->left);
+            return rightRotate(root);
+        }
+
+        // Right Right Case
+        if (balance < -1 && getBalanceFactor(root->right) <= 0)
+            return leftRotate(root);
+
+        // Right Left Case
+        if (balance < -1 && getBalanceFactor(root->right) > 0) {
+            root->right = rightRotate(root->right);
+            return leftRotate(root);
+        }
+
+        return root;
+    }
+
+    // Search for a ParkingSpot by Spot ID
+    AVLNode* search(AVLNode* root, int spotID) const {
+        if (!root || root->spot.id == spotID)
+            return root;
+
+        if (spotID < root->spot.id)
+            return search(root->left, spotID);
+        else
+            return search(root->right, spotID);
+    }
+
+    // In-order traversal (optional, for debugging)
+    void inorder(AVLNode* root) const {
+        if (root) {
+            inorder(root->left);
+            cout << root->spot.id << " ";
+            inorder(root->right);
+        }
+    }
+
+public:
+    AVLTree() : root(nullptr) {}
+
+    // Insert a ParkingSpot into the AVL tree
+    void insert(const ParkingSpot& spot) {
+        root = insert(root, spot);
+    }
+
+    // Delete a ParkingSpot from the AVL tree by Spot ID
+    void deleteSpot(int spotID) {
+        root = deleteNode(root, spotID);
+    }
+
+    // Search for a ParkingSpot by Spot ID
+    bool searchSpot(int spotID, ParkingSpot& foundSpot) const {
+        AVLNode* result = search(root, spotID);
+        if (result) {
+            foundSpot = result->spot;
+            return true;
+        }
+        return false;
+    }
+
+    // Optional: Display the AVL tree in-order (for debugging)
+    void displayInOrder() const {
+        cout << "AVL Tree In-Order Traversal (Spot IDs): ";
+        inorder(root);
+        cout << "\n";
+    }
+};
+
 class SmartParkingManagement{
 protected:// all of the fuctions present in the protected area will be used in the child classes ok
     vector<ParkingSpot> parkingSpots;
