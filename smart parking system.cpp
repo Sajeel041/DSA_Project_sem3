@@ -208,6 +208,44 @@ public:
             }
         } else {
             cout << "No suitable spots available for your vehicle type.\n";
+            }
+    }
+    // Release a reserved spot and calculate parking fee
+    void releaseSpot() {
+        int driverID;
+
+        cout << "=== Release Parking Spot ===\n";
+        cout << "Enter Driver ID: ";
+        cin >> driverID;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+
+        auto it = reservations.find(driverID);
+        if (it != reservations.end()) {
+            int spotID = it->second.first;
+            double entryTime = it->second.second;
+            double exitTime = static_cast<double>(time(0));
+
+            double duration = (exitTime - entryTime) / 3600.0; // Convert seconds to hours
+            if (duration < 0.0) duration = 0.0; // Prevent negative duration
+
+            // Find the parking spot details
+            auto spotIt = find_if(parkingSpots.begin(), parkingSpots.end(),
+                                  [spotID](const ParkingSpot &spot) { return spot.id == spotID; });
+
+            if (spotIt != parkingSpots.end()) {
+                double fee = spotIt->baseRate + (duration * spotIt->ratePerHour);
+                spotIt->isAvailable = true;
+                reservations.erase(it);
+                entryExitLogs.emplace_back(spotID, exitTime);
+
+                cout << "Spot ID " << spotID << " released for Driver ID " << driverID << ".\n";
+                cout << "Total Duration: " << fixed << setprecision(2) << duration << " hours\n";
+                cout << "Parking Fee: $" << fixed << setprecision(2) << fee << "\n";
+            } else {
+                cout << "Error: Spot ID " << spotID << " not found.\n";
+            }
+        } else {
+            cout << "No reservation found for Driver ID " << driverID << ".\n";
         }
     }
 };
@@ -291,7 +329,8 @@ int main(){
                             break;
                         }
                         case 3:{
-                            
+                             driver.releaseSpot();
+                            break;
                         }
                         case 4: { 
                             cout << "Returning to Main Menu...\n";
