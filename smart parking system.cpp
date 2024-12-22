@@ -14,133 +14,36 @@
 #include<stack>
 #include <queue> 
 using namespace std;
-// ------------------- Admin Class -------------------
-class Admin {
-private:
-    vector<string> &managerNames;
-    int securityCode = 18041; 
 
-    // Data structures to hold revenue
-    stack<double> revenueStack;  
-    queue<double> revenueQueue;  
 
-public:
-    Admin(vector<string> &names) : managerNames(names) {}
+// Struct to represent a Parking Spot
+enum class SlotSize { COMPACT = 1, REGULAR, LARGE };
+enum class VehicleType { MOTORCYCLE = 1, CAR, TRUCK };
 
-    // Add a new manager
-    void addManager() {
-        string name;
-        cout << "=== Add New Manager ===\n";
-        cout << "Enter Manager Name: ";
-        cin >> name;
-        managerNames.push_back(name);
-        cout << "Added new manager: " << name << ".\n";
-    }
-
-    // Remove an existing manager
-    void removeManager() {
-        string name;
-        cout << "=== Remove Manager ===\n";
-        cout << "Enter Manager Name to Remove: ";
-        cin >> name;
-
-        // Convert to lowercase for case-insensitive comparison
-        string lowerName = toLowerCase(name);
-
-        auto it = find_if(managerNames.begin(), managerNames.end(),
-                          [&lowerName, this](const string &manager) {
-                              string lowerManager = toLowerCase(manager);
-                              return lowerManager == lowerName;
-                          });
-        if (it != managerNames.end()) {
-            cout << "Removed manager: " << *it << ".\n";
-            managerNames.erase(it);
-        } else {
-            cout << "Manager " << name << " not found.\n";
-        }
-    }
-
-    // Authenticate admin by security code
-    bool authenticateAdmin() const {
-        int enteredCode;
-        cout << "=== Admin Authentication ===\n";
-        cout << "Enter Admin Security Code: ";
-        cin >> enteredCode;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
-        if (enteredCode == securityCode) {
-            cout << "Authentication successful.\n";
-            return true;
-        } else {
-            cout << "Invalid security code.\n";
-            return false;
-        }
-    }
-
-    // Change the security code
-    void changeSecurityCode() {
-        int newCode;
-        cout << "=== Change Security Code ===\n";
-        cout << "Enter New Security Code: ";
-        cin >> newCode;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
-        securityCode = newCode;
-        cout << "Security code updated successfully.\n";
-    }
-
-    // Record parking revenue in stack & queue
-    void addRevenue(double amount) {
-        revenueStack.push(amount);
-        revenueQueue.push(amount);
-    }
-
-    // Display revenue in either FIFO or LIFO
-    void displayRevenue() {
-        cout << "\n=== Display Revenue ===\n";
-        cout << "1. FIFO (Queue)\n";
-        cout << "2. LIFO (Stack)\n";
-        cout << "Enter your choice: ";
-        int choice;
-        cin >> choice;
-
-        if (choice == 1) {
-            // Display FIFO
-            if (revenueQueue.empty()) {
-                cout << "No revenue recorded yet.\n";
-                return;
-            }
-            queue<double> temp = revenueQueue;
-            cout << "Revenue in FIFO order:\n";
-            while (!temp.empty()) {
-                cout << "$" << fixed << setprecision(2) << temp.front() << "\n";
-                temp.pop();
-            }
-        }
-        else if (choice == 2) {
-            // Display LIFO
-            if (revenueStack.empty()) {
-                cout << "No revenue recorded yet.\n";
-                return;
-            }
-            stack<double> temp = revenueStack;
-            cout << "Revenue in LIFO order:\n";
-            while (!temp.empty()) {
-                cout << "$" << fixed << setprecision(2) << temp.top() << "\n";
-                temp.pop();
-            }
-        }
-        else {
-            cout << "Invalid choice.\n";
-        }
-    }
-
-private:
-    // Helper function to convert string to lowercase
-    string toLowerCase(const string& str) const {
-        string lowerStr = str;
-        transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
-        return lowerStr;
-    }
+struct ParkingSpot {
+    int id;
+    bool isAvailable;
+    SlotSize size; 
+    double distanceFromEntrance; 
+    double baseRate;             
+    double ratePerHour;          
 };
+
+// Struct to represent a Vehicle
+struct Vehicle {
+    
+    int driverID;
+    string licenseNumber;
+    VehicleType type;
+    double entryTime;    
+};
+// ------------------- AVL Tree Implementation for ParkingSpots -------------------
+/*
+    AVL Tree is a self-balancing binary search tree. In this implementation, the AVL Tree
+    is used to manage ParkingSpot nodes sorted by their Spot ID. This allows efficient
+    search, insertion, and deletion operations with O(log n) time complexity.
+*/
+
 void merge(vector<ParkingSpot> &spots, int left, int mid, int right) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
@@ -186,33 +89,6 @@ void mergeSortSpots(vector<ParkingSpot> &spots, int left, int right) {
         merge(spots, left, mid, right);
     }
 }
-// Struct to represent a Parking Spot
-enum class SlotSize { COMPACT = 1, REGULAR, LARGE };
-enum class VehicleType { MOTORCYCLE = 1, CAR, TRUCK };
-
-struct ParkingSpot {
-    int id;
-    bool isAvailable;
-    SlotSize size; 
-    double distanceFromEntrance; 
-    double baseRate;             
-    double ratePerHour;          
-};
-
-// Struct to represent a Vehicle
-struct Vehicle {
-    
-    int driverID;
-    string licenseNumber;
-    VehicleType type;
-    double entryTime;    
-};
-// ------------------- AVL Tree Implementation for ParkingSpots -------------------
-/*
-    AVL Tree is a self-balancing binary search tree. In this implementation, the AVL Tree
-    is used to manage ParkingSpot nodes sorted by their Spot ID. This allows efficient
-    search, insertion, and deletion operations with O(log n) time complexity.
-*/
 struct AVLNode {
     ParkingSpot spot;
     AVLNode* left;
@@ -409,13 +285,6 @@ private:
             return search(root->right, spotID);
     }
 
-    // In-order traversal (optional, for debugging)
-    void inorder(AVLNode* root) const {
-        if (root) {
-            inorder(root->left);
-            cout << root->spot.id << " ";
-            inorder(root->right);
-        }
     }
 
 public:
@@ -441,55 +310,159 @@ public:
         return false;
     }
 
-    // Optional: Display the AVL tree in-order (for debugging)
-    void displayInOrder() const {
-        cout << "AVL Tree In-Order Traversal (Spot IDs): ";
-        inorder(root);
-        cout << "\n";
+};
+class Admin {
+private:
+    vector<string> &managerNames;
+    int securityCode = 18041; 
+
+    // Data structures to hold revenue
+    stack<double> revenueStack;  
+    queue<double> revenueQueue;  
+
+public:
+    Admin(vector<string> &names) : managerNames(names) {}
+
+    // Add a new manager
+    void addManager() {
+        string name;
+        cout << "=== Add New Manager ===\n";
+        cout << "Enter Manager Name: ";
+        cin >> name;
+        managerNames.push_back(name);
+        cout << "Added new manager: " << name << ".\n";
+    }
+
+    // Remove an existing manager
+    void removeManager() {
+        string name;
+        cout << "=== Remove Manager ===\n";
+        cout << "Enter Manager Name to Remove: ";
+        cin >> name;
+
+        // Convert to lowercase for case-insensitive comparison
+        string lowerName = toLowerCase(name);
+
+        auto it = find_if(managerNames.begin(), managerNames.end(),
+                          [&lowerName, this](const string &manager) {
+                              string lowerManager = toLowerCase(manager);
+                              return lowerManager == lowerName;
+                          });
+        if (it != managerNames.end()) {
+            cout << "Removed manager: " << *it << ".\n";
+            managerNames.erase(it);
+        } else {
+            cout << "Manager " << name << " not found.\n";
+        }
+    }
+
+    // Authenticate admin by security code
+    bool authenticateAdmin() const {
+        int enteredCode;
+        cout << "=== Admin Authentication ===\n";
+        cout << "Enter Admin Security Code: ";
+        cin >> enteredCode;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        if (enteredCode == securityCode) {
+            cout << "Authentication successful.\n";
+            return true;
+        } else {
+            cout << "Invalid security code.\n";
+            return false;
+        }
+    }
+
+    // Change the security code
+    void changeSecurityCode() {
+        int newCode;
+        cout << "=== Change Security Code ===\n";
+        cout << "Enter New Security Code: ";
+        cin >> newCode;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        securityCode = newCode;
+        cout << "Security code updated successfully.\n";
+    }
+
+    // Record parking revenue in stack & queue
+    void addRevenue(double amount) {
+        revenueStack.push(amount);
+        revenueQueue.push(amount);
+    }
+
+    // Display revenue in either FIFO or LIFO
+    void displayRevenue() {
+        cout << "\n=== Display Revenue ===\n";
+        cout << "1. FIFO (Queue)\n";
+        cout << "2. LIFO (Stack)\n";
+        cout << "Enter your choice: ";
+        int choice;
+        cin >> choice;
+
+        if (choice == 1) {
+            // Display FIFO
+            if (revenueQueue.empty()) {
+                cout << "No revenue recorded yet.\n";
+                return;
+            }
+            queue<double> temp = revenueQueue;
+            cout << "Revenue in FIFO order:\n";
+            while (!temp.empty()) {
+                cout << "$" << fixed << setprecision(2) << temp.front() << "\n";
+                temp.pop();
+            }
+        }
+        else if (choice == 2) {
+            // Display LIFO
+            if (revenueStack.empty()) {
+                cout << "No revenue recorded yet.\n";
+                return;
+            }
+            stack<double> temp = revenueStack;
+            cout << "Revenue in LIFO order:\n";
+            while (!temp.empty()) {
+                cout << "$" << fixed << setprecision(2) << temp.top() << "\n";
+                temp.pop();
+            }
+        }
+        else {
+            cout << "Invalid choice.\n";
+        }
+    }
+
+private:
+    // Helper function to convert string to lowercase
+    string toLowerCase(const string& str) const {
+        string lowerStr = str;
+        transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+        return lowerStr;
     }
 };
-
-class SmartParkingManagement{
-protected:// all of the fuctions present in the protected area will be used in the child classes ok
+class SmartParkingManagement {
+protected:
     vector<ParkingSpot> parkingSpots;
     unordered_map<int, pair<int, double>> reservations; // driverID -> (spotID, entryTime)
     list<pair<int, double>> entryExitLogs;              // (spotID, timestamp)
-    vector<vector<int>> adjacencyMatrix;                // Graph representation of parking lot
+    vector<vector<int>> adjacencyMatrix;                // Graph representation
+    AVLTree spotTree;                                  // AVL Tree for ParkingSpots
 
     // Helper function to convert string to lowercase
-string toLowerCase(const string& str) const {
-    string lowerStr = str;
-    for (char &ch : lowerStr) {
-        ch = tolower(ch);  // Convert each character to lowercase
-    }
-    return lowerStr;
-    }
-bool isValidSpotID(int id) const {
-    // Iterate through each parking spot to check if the id exists
-    for (const auto &spot : parkingSpots) {
-        if (spot.id == id) {
-            return true; // id found, return true
+    string toLowerCase(const string& str) const {
+        string lowerStr = str;
+        for (char &ch : lowerStr) {
+            ch = tolower(ch);
         }
+        return lowerStr;
     }
-    return false; // id not found, return false
-}
-int findBestFitSpot(VehicleType type) const {
-        //spots to find the smallest available spot that fits the vehicle
-        for (const auto &spot : parkingSpots) {
-            if (spot.isAvailable && canFit(type, spot.size)) {
-                return spot.id;
-            }
-        }
-        return -1; 
-    }
- 
+
+    // Merge Sort implementation for sorting parking spots by proximity
     void sortSpotsByProximity() {
         if (!parkingSpots.empty()) {
             // Perform Merge Sort on the parkingSpots vector
             mergeSortSpots(parkingSpots, 0, static_cast<int>(parkingSpots.size()) - 1);
         }
     }
-// Check if a vehicle type can fit into a slot size
+
+    // Check if a vehicle type can fit into a slot size
     bool canFit(VehicleType type, SlotSize size) const {
         if (type == VehicleType::MOTORCYCLE) {
             return (size == SlotSize::COMPACT);
@@ -501,7 +474,17 @@ int findBestFitSpot(VehicleType type) const {
         return false;
     }
 
-// Display the adjacency matrix (Graph Representation)
+    // Find the best-fit spot based on vehicle type (first one that can fit)
+    int findBestFitSpot(VehicleType type) const {
+        for (const auto &spot : parkingSpots) {
+            if (spot.isAvailable && canFit(type, spot.size)) {
+                return spot.id;
+            }
+        }
+        return -1; // No suitable spot found
+    }
+
+    // Display the adjacency matrix
     void displayGraph() const {
         cout << "Parking Lot Graph (Adjacency Matrix):\n";
         for (const auto &row : adjacencyMatrix) {
@@ -511,44 +494,41 @@ int findBestFitSpot(VehicleType type) const {
             cout << "\n";
         }
     }
-// Check if a spot ID is valid
+
+    // Check if a spot ID is valid using AVL Tree for efficient search
     bool isValidSpotID(int id) const {
-    for (const auto &spot : parkingSpots) {
-        if (spot.id == id) {
-            return true; 
-        }
+        ParkingSpot dummy;
+        return spotTree.searchSpot(id, dummy);
     }
-    return false; 
-}
 public:
     // Constructor to initialize parking spots and adjacency matrix with deterministic sizes
+    // Constructor
     SmartParkingManagement(int totalSpots, const vector<vector<int>> &graph) {
-        // Initialize adjacency matrix
         adjacencyMatrix = graph;
 
-        // Initialize parking spots with fixed sizes for testing
+        // Initialize parking spots with fixed sizes
         for (int i = 0; i < totalSpots; i++) {
             SlotSize size;
-            // Assign sizes based on spot ID for predictability
             if (i == 0) {
-                size = SlotSize::REGULAR; // Suitable for Car
+                size = SlotSize::REGULAR;
             } else if (i == 1 || i == 2) {
-                size = SlotSize::COMPACT; // Suitable for Motorcycle
+                size = SlotSize::COMPACT;
             } else {
-                size = SlotSize::LARGE; // Suitable for Truck
+                size = SlotSize::LARGE;
             }
-            double distance = static_cast<double>(rand() % 100 + 1); // Distance between 1 and 100 meters
-            double baseRate = 5.0;    // Base fee
-            double ratePerHour = 3.0; // Hourly rate
+            double distance = static_cast<double>(rand() % 100 + 1);
+            double baseRate = 5.0;
+            double ratePerHour = 3.0;
 
-            parkingSpots.push_back({i, true, size, distance, baseRate, ratePerHour});
+            ParkingSpot newSpot = {i, true, size, distance, baseRate, ratePerHour};
             parkingSpots.push_back(newSpot);
-            spotTree.insert(newSpot);
+            spotTree.insert(newSpot); // Insert into AVL Tree
         }
+        // Sort by proximity using merge sort
         sortSpotsByProximity();
     }
 
-    // Getter for parkingSpots (returns const reference to prevent modification)
+    // Getter for parkingSpots
     const vector<ParkingSpot>& getParkingSpots() const {
         return parkingSpots;
     }
@@ -558,14 +538,11 @@ public:
         cout << "Available Parking Spots for ";
         switch (type) {
             case VehicleType::MOTORCYCLE:
-                cout << "Motorcycle:\n";
-                break;
+                cout << "Motorcycle:\n"; break;
             case VehicleType::CAR:
-                cout << "Car:\n";
-                break;
+                cout << "Car:\n"; break;
             case VehicleType::TRUCK:
-                cout << "Truck:\n";
-                break;
+                cout << "Truck:\n"; break;
             default:
                 cout << "Unknown Vehicle Type:\n";
         }
@@ -584,30 +561,28 @@ public:
         }
     }
 
-    ofstream outFile("parking_data.txt");
-
-    if (!outFile) {
-        cerr << "Error opening file for writing.\n";
-        return;
+    // Save parking data to a file
+    void saveData() const {
+        ofstream outFile("parking_data.txt");
+        if (!outFile) {
+            cerr << "Error opening file for writing.\n";
+            return;
+        }
+        // Save parking spots
+        for (const auto &spot : parkingSpots) {
+            outFile << spot.id << "," << spot.isAvailable << "," 
+                    << static_cast<int>(spot.size) << ","
+                    << spot.distanceFromEntrance << ","
+                    << spot.baseRate << ","
+                    << spot.ratePerHour << "\n";
+        }
+        // Save reservations
+        for (const auto &res : reservations) {
+            outFile << res.first << "," << res.second.first << "," << res.second.second << "\n";
+        }
+        outFile.close();
+        cout << "Data saved successfully.\n";
     }
-    
-    // Loop through each parking spot and write its details to the file, separated by commas
-    for (const auto &spot : parkingSpots) {
-        outFile << spot.id << "," << spot.isAvailable << "," 
-                << static_cast<int>(spot.size) << "," 
-                << spot.distanceFromEntrance << "," 
-                << spot.baseRate << "," 
-                << spot.ratePerHour << "\n";
-    }
-    
-    // Now, go through all the reservations and save them too
-    for (const auto &res : reservations) {
-        outFile << res.first << "," << res.second.first << "," << res.second.second << "\n";
-    }
-    outFile.close();
-
-    cout << "Data saved successfully.\n";
-}
 // This function loads parking spot info and reservations from a file
     void loadData() {
         ifstream inFile("parking_data.txt");
