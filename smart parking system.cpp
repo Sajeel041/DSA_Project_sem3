@@ -381,7 +381,23 @@ public:
     }
 };
 class ParkingLotManager : public SmartParkingManagement {
+protected:
+    vector<string> &managerNames;
 
+public:
+    ParkingLotManager(int totalSpots, const vector<vector<int>> &graph, vector<string> &names)
+        : SmartParkingManagement(totalSpots, graph), managerNames(names) {}
+
+    // Authenticate manager by name (simple authentication)
+    bool authenticateManager(const string &name) const {
+        string lowerName = toLowerCase(name); // Now accessible as it's protected
+        for (const auto &manager : managerNames) {
+            string lowerManager = toLowerCase(manager);
+            if (lowerName == lowerManager)
+                return true;
+        }
+        return false;
+    }
 };
 class Admin{
 
