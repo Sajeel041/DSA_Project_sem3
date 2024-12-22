@@ -321,6 +321,8 @@ public:
 
 };
 class Driver : public SmartParkingManagement{
+private:
+    Admin* adminPtr;
 public:
     Driver(int totalSpots, const vector<vector<int>> &graph) : SmartParkingManagement(totalSpots, graph) {}
 
@@ -376,11 +378,10 @@ public:
     // Release a reserved spot and calculate parking fee
     void releaseSpot() {
         int driverID;
-
         cout << "=== Release Parking Spot ===\n";
         cout << "Enter Driver ID: ";
         cin >> driverID;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         auto it = reservations.find(driverID);
         if (it != reservations.end()) {
@@ -388,26 +389,38 @@ public:
             double entryTime = it->second.second;
             double exitTime = static_cast<double>(time(0));
 
-            double duration = (exitTime - entryTime) / 3600.0; // Convert seconds to hours
-            if (duration < 0.0) duration = 0.0; // Prevent negative duration
+            double duration = (exitTime - entryTime) / 3600.0; 
+            if (duration < 0.0) duration = 0.0;
 
-            // Find the parking spot details
-            auto spotIt = find_if(parkingSpots.begin(), parkingSpots.end(),
-                                  [spotID](const ParkingSpot &spot) { return spot.id == spotID; });
+            // Find the parking spot
+            ParkingSpot foundSpot;
+            if (spotTree.searchSpot(spotID, foundSpot)) {
+                // Update availability in vector
+                for (auto &spot : parkingSpots) {
+                    if (spot.id == spotID) {
+                        spot.isAvailable = true;
+                        break;
+                    }
+                }
 
-            if (spotIt != parkingSpots.end()) {
-                double fee = spotIt->baseRate + (duration * spotIt->ratePerHour);
-                spotIt->isAvailable = true;
+                double fee = foundSpot.baseRate + (duration * foundSpot.ratePerHour);
                 reservations.erase(it);
                 entryExitLogs.emplace_back(spotID, exitTime);
+
+                // Add fee to Admin's revenue structures
+                if (adminPtr) {
+                    adminPtr->addRevenue(fee);
+                }
 
                 cout << "Spot ID " << spotID << " released for Driver ID " << driverID << ".\n";
                 cout << "Total Duration: " << fixed << setprecision(2) << duration << " hours\n";
                 cout << "Parking Fee: $" << fixed << setprecision(2) << fee << "\n";
-            } else {
-                cout << "Error: Spot ID " << spotID << " not found.\n";
             }
-        } else {
+            else {
+                cout << "Error: Spot ID " << spotID << " not found in AVL Tree.\n";
+            }
+        }
+        else {
             cout << "No reservation found for Driver ID " << driverID << ".\n";
         }
     }
@@ -433,18 +446,18 @@ public:
 void addParkingSpot() {
         int id, sizeChoice;
         double distance, baseRate, ratePerHour;
-
         cout << "=== Add New Parking Spot ===\n";
         cout << "Enter Spot ID: ";
         cin >> id;
 
-        // Check if spot ID already exists
         if (isValidSpotID(id)) {
             cout << "Spot ID " << id << " already exists.\n";
             return;
         }
 
-        cout << "Select Spot Size:\n1. Compact\n2. Regular\n3. Large\nEnter your choice: ";
+        cout << "Select Spot Size:\n"
+             << "1. Compact\n2. Regular\n3. Large\n"
+             << "Enter your choice: ";
         while (!(cin >> sizeChoice) || sizeChoice < 1 || sizeChoice > 3) {
             cout << "Invalid input. Please enter a number between 1 and 3: ";
             cin.clear();
@@ -453,31 +466,61 @@ void addParkingSpot() {
 
         SlotSize size;
         switch (sizeChoice) {
-            case 1:
-                size = SlotSize::COMPACT;
-                break;
-            case 2:
-                size = SlotSize::REGULAR;
-                break;
-            case 3:
-                size = SlotSize::LARGE;
-                break;
-            default:
-                size = SlotSize::REGULAR;
+            case 1: size = SlotSize::COMPACT;  break;
+            case 2: size = SlotSize::REGULAR;  break;
+            case 3: size = SlotSize::LARGE;    break;
+            default: size = SlotSize::REGULAR; break;
         }
 
-        cout << "Enter Distance from Entrance (in meters): ";
+        cout << "Enter Distance from Entrance (meters): ";
         cin >> distance;
         cout << "Enter Base Rate: $";
         cin >> baseRate;
         cout << "Enter Rate Per Hour: $";
         cin >> ratePerHour;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-        // Add the new spot
-        parkingSpots.push_back({id, true, size, distance, baseRate, ratePerHour});
+        ParkingSpot newSpot = {id, true, size, distance, baseRate, ratePerHour};
+        parkingSpots.push_back(newSpot);
+        spotTree.insert(newSpot); // Insert into AVL Tree
+        // Re-sort after adding new spot
         sortSpotsByProximity();
         cout << "Added new parking spot with ID " << id << ".\n";
+    }
+void updateParkingSpot() {
+        int id, availabilityChoice;
+        cout << "=== Update Parking Spot ===\n";
+        cout << "Enter Spot ID to Update: ";
+        cin >> id;
+
+        if (!isValidSpotID(id)) {
+            cout << "Spot ID " << id << " does not exist.\n";
+            return;
+        }
+
+        cout << "Set Availability:\n1. Available\n2. Occupied\n"
+             << "Enter your choice: ";
+        while (!(cin >> availabilityChoice) || (availabilityChoice != 1 && availabilityChoice != 2)) {
+            cout << "Invalid input. Please enter 1 or 2: ";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
+
+        bool isAvail = (availabilityChoice == 1);
+        // Update availability in vector
+        for (auto &spot : parkingSpots) {
+            if (spot.id == id) {
+                spot.isAvailable = isAvail;
+                break;
+            }
+        }
+        cout << "Spot ID " << id << " updated to "
+             << (isAvail ? "Available" : "Occupied") << ".\n";
+    }
+
+    // Public function to display the adjacency matrix
+    void displayGraph() const {
+        SmartParkingManagement::displayGraph();
     }
 };
 class Admin{
@@ -570,53 +613,69 @@ int main(){
                 }(while (driverChoice != 4);
                   break;
                 }
-                    case 2:{ // Parking Lot Manager
-                        string managerName;
-                        cout << "Enter Manager Name: ";
-                        cin >> managerName;
+                  case 2: {
+                // Manager Menu
+                string managerName;
+                cout << "Enter Manager Name: ";
+                cin >> managerName;
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                if (manager.authenticateManager(managerName)) {
+                    int managerChoice;
+                    do {
+                        cout << "\n=== Parking Lot Manager Menu ===\n";
+                        cout << "1. Display Available Spots\n";
+                        cout << "2. Add Parking Spot\n";
+                        cout << "3. Update Parking Spot\n";
+                        cout << "4. Display Graph\n"; // Added Display Graph option
+                        cout << "5. Back to Main Menu\n";
+                        cout << "Enter your choice: ";
+                        while (!(cin >> managerChoice) || managerChoice < 1 || managerChoice > 5) {
+                            cout << "Invalid input. Please enter a number between 1 and 5: ";
+                            cin.clear();
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                        }
                         cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                        if (manager.authenticateManager(managerName)) {
-                            int managerChoice;
-                        do {
-                            cout << "\n=== Parking Lot Manager Menu ===\n";
-                            cout << "1. Display Available Spots\n";
-                            cout << "2. Add Parking Spot\n";
-                            cout << "3. Update Parking Spot\n";
-                            cout << "4. Back to Main Menu\n";
-                            cout << "Enter your choice: ";
-                            while (!(cin >> managerChoice) || managerChoice < 1 || managerChoice > 4) {
-                                cout << "Invalid input. Please enter a number between 1 and 4: ";
-                                cin.clear();
-                                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                            }
-                            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
-                            switch(managerChoice){
-                                case 1:{
-                                    cout << "\n=== Available Parking Spots ===\n";
-                                    for (const auto &spot : manager.getParkingSpots()) { // Use getter
-                                        if (spot.isAvailable) {
-                                            cout << "Spot ID: " << spot.id<< ", Size: " << ((spot.size == SlotSize::COMPACT) ? "Compact" :(spot.size == SlotSize::REGULAR) ? "Regular" : "Large") << ", Distance: " << spot.distanceFromEntrance << " meters\n";        
-                                        }
+
+                        switch (managerChoice) {
+                            case 1: {
+                                cout << "\n=== Available Parking Spots ===\n";
+                                for (const auto &spot : manager.getParkingSpots()) {
+                                    if (spot.isAvailable) {
+                                        cout << "Spot ID: " << spot.id
+                                             << ", Size: " << ((spot.size == SlotSize::COMPACT) ? "Compact" :
+                                                              (spot.size == SlotSize::REGULAR) ? "Regular" : "Large")
+                                             << ", Distance: " << spot.distanceFromEntrance << " meters\n";
                                     }
+                                }
                                 break;
-                                }
-                                case 2:{
-                                    manager.addParkingSpot();
-                                    break;
-                                }
-                                case 3:{}
-                                case 4:{
-                                    cout << "Returning to Main Menu...\n";
-                                    break;
-                                }
-                                default:
-                                    cout << "Invalid choice. Please try again.\n";      
-                            }    
-                        }while(mangerchoice!=4);
-                        }else 
-                            cout << "Invalid manager name. Returning to Main Menu.\n";
-                        break;
-                    }
+                            }
+                            case 2: {
+                                manager.addParkingSpot();
+                                break;
+                            }
+                            case 3: {
+                                manager.updateParkingSpot();
+                                break;
+                            }
+                            case 4: {
+                                manager.displayGraph(); // Now accessible since displayGraph() is public
+                                break;
+                            }
+                            case 5: {
+                                cout << "Returning to Main Menu...\n";
+                                break;
+                            }
+                            default:
+                                cout << "Invalid choice. Please try again.\n";
+                        }
+                    } while (managerChoice != 5);
+                }
+                else {
+                    cout << "Invalid manager name. Returning to Main Menu.\n";
+                }
+                break;
+            }
                     case 3:{ // Parking Lot Manager
                         string managerName;
                         cout << "Enter Manager Name: ";
