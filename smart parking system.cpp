@@ -14,7 +14,133 @@
 #include<stack>
 #include <queue> 
 using namespace std;
+// ------------------- Admin Class -------------------
+class Admin {
+private:
+    vector<string> &managerNames;
+    int securityCode = 18041; 
 
+    // Data structures to hold revenue
+    stack<double> revenueStack;  
+    queue<double> revenueQueue;  
+
+public:
+    Admin(vector<string> &names) : managerNames(names) {}
+
+    // Add a new manager
+    void addManager() {
+        string name;
+        cout << "=== Add New Manager ===\n";
+        cout << "Enter Manager Name: ";
+        cin >> name;
+        managerNames.push_back(name);
+        cout << "Added new manager: " << name << ".\n";
+    }
+
+    // Remove an existing manager
+    void removeManager() {
+        string name;
+        cout << "=== Remove Manager ===\n";
+        cout << "Enter Manager Name to Remove: ";
+        cin >> name;
+
+        // Convert to lowercase for case-insensitive comparison
+        string lowerName = toLowerCase(name);
+
+        auto it = find_if(managerNames.begin(), managerNames.end(),
+                          [&lowerName, this](const string &manager) {
+                              string lowerManager = toLowerCase(manager);
+                              return lowerManager == lowerName;
+                          });
+        if (it != managerNames.end()) {
+            cout << "Removed manager: " << *it << ".\n";
+            managerNames.erase(it);
+        } else {
+            cout << "Manager " << name << " not found.\n";
+        }
+    }
+
+    // Authenticate admin by security code
+    bool authenticateAdmin() const {
+        int enteredCode;
+        cout << "=== Admin Authentication ===\n";
+        cout << "Enter Admin Security Code: ";
+        cin >> enteredCode;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        if (enteredCode == securityCode) {
+            cout << "Authentication successful.\n";
+            return true;
+        } else {
+            cout << "Invalid security code.\n";
+            return false;
+        }
+    }
+
+    // Change the security code
+    void changeSecurityCode() {
+        int newCode;
+        cout << "=== Change Security Code ===\n";
+        cout << "Enter New Security Code: ";
+        cin >> newCode;
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+        securityCode = newCode;
+        cout << "Security code updated successfully.\n";
+    }
+
+    // Record parking revenue in stack & queue
+    void addRevenue(double amount) {
+        revenueStack.push(amount);
+        revenueQueue.push(amount);
+    }
+
+    // Display revenue in either FIFO or LIFO
+    void displayRevenue() {
+        cout << "\n=== Display Revenue ===\n";
+        cout << "1. FIFO (Queue)\n";
+        cout << "2. LIFO (Stack)\n";
+        cout << "Enter your choice: ";
+        int choice;
+        cin >> choice;
+
+        if (choice == 1) {
+            // Display FIFO
+            if (revenueQueue.empty()) {
+                cout << "No revenue recorded yet.\n";
+                return;
+            }
+            queue<double> temp = revenueQueue;
+            cout << "Revenue in FIFO order:\n";
+            while (!temp.empty()) {
+                cout << "$" << fixed << setprecision(2) << temp.front() << "\n";
+                temp.pop();
+            }
+        }
+        else if (choice == 2) {
+            // Display LIFO
+            if (revenueStack.empty()) {
+                cout << "No revenue recorded yet.\n";
+                return;
+            }
+            stack<double> temp = revenueStack;
+            cout << "Revenue in LIFO order:\n";
+            while (!temp.empty()) {
+                cout << "$" << fixed << setprecision(2) << temp.top() << "\n";
+                temp.pop();
+            }
+        }
+        else {
+            cout << "Invalid choice.\n";
+        }
+    }
+
+private:
+    // Helper function to convert string to lowercase
+    string toLowerCase(const string& str) const {
+        string lowerStr = str;
+        transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+        return lowerStr;
+    }
+};
 void merge(vector<ParkingSpot> &spots, int left, int mid, int right) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
@@ -765,12 +891,8 @@ void updateParkingSpot() {
         SmartParkingManagement::displayGraph();
     }
 };
-class Admin{
-
-};
-
-int main(){
-    srand(static_cast<unsigned int>(time(0))); // Seed for random number generation
+int main() {
+    srand(static_cast<unsigned int>(time(0))); 
 
     int totalSpots;
     cout << "=== Smart Parking Management System ===\n";
@@ -780,19 +902,29 @@ int main(){
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
-    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    vector<vector<int>> graph(totalSpots, vector<int>(totalSpots, 1)); // 1 indicates a direct connection
-    
+    // Create a simple adjacency matrix (fully connected for now)
+    // Note: For a more meaningful adjacency matrix, consider implementing a grid or specific layout
+    vector<vector<int>> graph(totalSpots, vector<int>(totalSpots, 1));
+
+    // Manager names
     vector<string> managerNames = {"Alice", "Bob", "Charlie"};
 
-    Driver driver(totalSpots, graph);
-    ParkingLotManager manager(totalSpots, graph, managerNames);
+    // Create Admin instance
     Admin admin(managerNames);
 
+    // Create Driver, passing pointer to admin
+    Driver driver(totalSpots, graph, &admin);
+
+    // Create Manager
+    ParkingLotManager manager(totalSpots, graph, managerNames);
+
+    // Load existing data
     driver.loadData();
+
     int choice;
-  do {
+    do {
         cout << "\n=== Main Menu ===\n";
         cout << "Select Role:\n";
         cout << "1. Driver\n";
@@ -801,14 +933,15 @@ int main(){
         cout << "4. Exit\n";
         cout << "Enter your choice: ";
         while (!(cin >> choice) || choice < 1 || choice > 4) {
-               cout << "Invalid input. Please enter a number between 1 and 4: ";
-                 cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-             }
-        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
-      cin>>choice;
-      switch(choice){
-              case 1: { // Driver
+            cout << "Invalid input. Please enter a number between 1 and 4: ";
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+
+        switch (choice) {
+            case 1: {
+                // Driver Menu
                 int driverChoice;
                 do {
                     cout << "\n=== Driver Menu ===\n";
@@ -822,40 +955,42 @@ int main(){
                         cin.clear();
                         cin.ignore(numeric_limits<streamsize>::max(), '\n');
                     }
-                    cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
                     switch (driverChoice) {
-                        case 1: { // Display Available Spots
+                        case 1: {
                             int vehicleChoice;
-                            cout << "Select Vehicle Type to View Available Spots:\n1. Motorcycle\n2. Car\n3. Truck\nEnter your choice: ";
+                            cout << "Select Vehicle Type:\n1. Motorcycle\n2. Car\n3. Truck\n"
+                                 << "Enter your choice: ";
                             while (!(cin >> vehicleChoice) || vehicleChoice < 1 || vehicleChoice > 3) {
                                 cout << "Invalid input. Please enter a number between 1 and 3: ";
                                 cin.clear();
                                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
                             }
-                            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear input buffer
-                            VehicleType type = static_cast<VehicleType>(vehicleChoice); // converting integer to enum
-                            driver.displayAvailableSpots(type);
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                            VehicleType vType = static_cast<VehicleType>(vehicleChoice);
+                            driver.displayAvailableSpots(vType);
                             break;
                         }
-                        case 2:{
+                        case 2: {
                             driver.reserveSpot();
                             break;
                         }
-                        case 3:{
-                             driver.releaseSpot();
+                        case 3: {
+                            driver.releaseSpot();
                             break;
                         }
-                        case 4: { 
+                        case 4: {
                             cout << "Returning to Main Menu...\n";
                             break;
                         }
                         default:
                             cout << "Invalid choice. Please try again.\n";
                     }
-                }(while (driverChoice != 4);
-                  break;
-                }
-                  case 2: {
+                } while (driverChoice != 4);
+                break;
+            }
+            case 2: {
                 // Manager Menu
                 string managerName;
                 cout << "Enter Manager Name: ";
@@ -918,47 +1053,67 @@ int main(){
                 }
                 break;
             }
-                    case 3:{ // Parking Lot Manager
-                        string managerName;
-                        cout << "Enter Manager Name: ";
-                        cin >> managerName;
-                        int managerChoice;
+            case 3: {
+                // Admin Menu
+                bool isAuthenticated = admin.authenticateAdmin();
+                if (isAuthenticated) {
+                    int adminChoice;
                     do {
                         cout << "\n=== Admin Menu ===\n";
                         cout << "1. Add Manager\n";
                         cout << "2. Remove Manager\n";
                         cout << "3. Change Security Code\n";
-                        cout << "4. Back to Main Menu\n";
+                        cout << "4. Display Revenue\n";
+                        cout << "5. Back to Main Menu\n";
                         cout << "Enter your choice: ";
-                        switch(managerChoice){
-                            case 1:{}
-                        case 2:{
+                        while (!(cin >> adminChoice) || adminChoice < 1 || adminChoice > 5) {
+                            cout << "Invalid input. Please enter a number between 1 and 5: ";
+                            cin.clear();
+                            cin.ignore(numeric_limits<streamsize>::max(), '\n');
                         }
-                        case 3:{}
-                        case 4:{}
-                        default:
-                            
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                        switch (adminChoice) {
+                            case 1: {
+                                admin.addManager();
+                                break;
+                            }
+                            case 2: {
+                                admin.removeManager();
+                                break;
+                            }
+                            case 3: {
+                                admin.changeSecurityCode();
+                                break;
+                            }
+                            case 4: {
+                                admin.displayRevenue();
+                                break;
+                            }
+                            case 5: {
+                                cout << "Returning to Main Menu...\n";
+                                break;
+                            }
+                            default:
+                                cout << "Invalid choice. Please try again.\n";
                         }
-                    }while(mangerchoice!=4);
-                        break;
-                    }
-                    case 4: { // Exit
-                    driver.saveData(); // Save data before exiting
-                    cout << "Exiting the system. Goodbye!\n";
-                    break;
-                    }
-                    default:
-                    cout << "Invalid choice. Please try again.\n";
-                    }
+                    } while (adminChoice != 5);
+                }
+                else {
+                    cout << "Authentication failed. Returning to Main Menu.\n";
+                }
+                break;
+            }
+            case 4: {
+                // Exit
+                driver.saveData();
+                cout << "Exiting the system. Goodbye!\n";
+                break;
+            }
+            default:
+                cout << "Invalid choice. Please try again.\n";
+        }
+    } while (choice != 4);
 
-                    }
-
-          }
-
-          
-      }
-
-  }while(choice !=4);
-    
-return 0;
+    return 0;
 }
