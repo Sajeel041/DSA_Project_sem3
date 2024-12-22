@@ -156,6 +156,137 @@ public:
             cout << "No available spots for this vehicle type.\n";
         }
     }
+// This function saves all the parking spot info and reservations to a file
+void saveData() const {
+    // Open (or create) a file named "parking_data.txt" where we'll save our data
+    ofstream outFile("parking_data.txt");
+    
+    // If the file didn't open for some reason, let the user know and stop here
+    if (!outFile) {
+        cerr << "Error opening file for writing.\n";
+        return;
+    }
+    
+    // Loop through each parking spot and write its details to the file, separated by commas
+    for (const auto &spot : parkingSpots) {
+        outFile << spot.id << "," << spot.isAvailable << "," 
+                << static_cast<int>(spot.size) << "," 
+                << spot.distanceFromEntrance << "," 
+                << spot.baseRate << "," 
+                << spot.ratePerHour << "\n";
+    }
+    
+    // Now, go through all the reservations and save them too
+    for (const auto &res : reservations) {
+        outFile << res.first << "," << res.second.first << "," << res.second.second << "\n";
+    }
+    
+    // Close the file to make sure everything is saved properly
+    outFile.close();
+    
+    // Let the user know that the data was saved successfully
+    cout << "Data saved successfully.\n";
+}
+// This function loads parking spot info and reservations from a file
+void loadData() {
+    // Try to open the "parking_data.txt" file to read data from it
+    ifstream inFile("parking_data.txt");
+    
+    // If the file doesn't exist or can't be opened, tell the user and start fresh
+    if (!inFile) {
+        cout << "No existing data found. Starting fresh.\n";
+        return;
+    }
+    
+    // Clear out any current parking spots so we don't mix old and new data
+    parkingSpots.clear();
+    
+    string line; // This will hold each line we read from the file
+    
+    // First, read all the parking spots from the file
+    while (getline(inFile, line)) {
+        stringstream ss(line); // Break the line into parts separated by commas
+        string token; // Temporary variable to hold each part
+        
+        // Get the spot ID
+        getline(ss, token, ',');
+        int id = stoi(token); // Convert the string to an integer
+        
+        // Get whether the spot is available
+        getline(ss, token, ',');
+        bool isAvailable = stoi(token); // Convert "1" or "0" to true or false
+        
+        // Get the size of the spot
+        getline(ss, token, ',');
+        SlotSize size = static_cast<SlotSize>(stoi(token)); // Convert to SlotSize enum
+        
+        // Get the distance from the entrance
+        getline(ss, token, ',');
+        double distance = stod(token); // Convert to a double
+        
+        // Get the base rate
+        getline(ss, token, ',');
+        double baseRate = stod(token); // Convert to a double
+        
+        // Get the rate per hour
+        getline(ss, token, ',');
+        double ratePerHour = stod(token); // Convert to a double
+        
+        // Add this spot to our parkingSpots list
+        parkingSpots.push_back({id, isAvailable, size, distance, baseRate, ratePerHour});
+    }
+    
+    // Now, we need to read the reservations
+    // First, clear any existing reservations
+    reservations.clear();
+    
+    // Reset the file pointer back to the beginning of the file
+    inFile.clear();
+    inFile.seekg(0, ios::beg);
+    
+    // Skip over the parking spot lines since we've already read them
+    for (int i = 0; i < parkingSpots.size(); i++) {
+        getline(inFile, line);
+    }
+    
+    // Now, read the reservation lines
+    while (getline(inFile, line)) {
+        if (line.empty()) continue; // Skip any empty lines
+        
+        stringstream ss(line); // Break the line into parts separated by commas
+        string token; // Temporary variable to hold each part
+        
+        // Get the driver ID
+        getline(ss, token, ',');
+        int driverID = stoi(token); // Convert to an integer
+        
+        // Get the spot ID they've reserved
+        getline(ss, token, ',');
+        int spotID = stoi(token); // Convert to an integer
+        
+        // Get the time they reserved the spot
+        getline(ss, token, ',');
+        double entryTime = stod(token); // Convert to a double (timestamp)
+        
+        // Add this reservation to our reservations map
+        reservations[driverID] = {spotID, entryTime};
+        
+        // Find the corresponding parking spot and mark it as unavailable
+        for (auto &spot : parkingSpots) {
+            if (spot.id == spotID) {
+                spot.isAvailable = false;
+                break; // No need to keep looking once we found the spot
+            }
+        }
+    }
+    
+    // Close the file now that we're done reading everything
+    inFile.close();
+    
+    // Let the user know that the data was loaded successfully
+    cout << "Data loaded successfully.\n";
+}
+
 };
 class Driver : public SmartParkingManagement{
 public:
